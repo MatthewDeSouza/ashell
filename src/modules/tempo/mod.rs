@@ -155,11 +155,14 @@ fn local_minute(now: DateTime<Local>) -> i64 {
     now.naive_local().and_utc().timestamp().div_euclid(60)
 }
 
-/// Formats for the dates in the menu, the forecast days and the calendar header.
+/// Formats for the dates in the menu, the forecast days, the calendar header and
+/// the timezone list.
 #[derive(Debug, PartialEq, Eq)]
 struct DateFormats {
     forecast: String,
     header: String,
+    /// The timezone list, without a weekday or year.
+    day_month: String,
 }
 
 /// Date formats that follow the clock. Locales whose `%x` writes the year with
@@ -187,11 +190,13 @@ fn date_formats(clock: &str, locale: Locale) -> DateFormats {
         DateFormats {
             forecast: format!("%a, %b {day}"),
             header: format!("%B {day}, %Y"),
+            day_month: format!("%b {day}"),
         }
     } else {
         DateFormats {
             forecast: format!("%a, {day} %b"),
             header: format!("{day} %B %Y"),
+            day_month: format!("{day} %b"),
         }
     }
 }
@@ -238,6 +243,7 @@ fn unit_date_formats(
 
     Some(DateFormats {
         forecast: format!("{month_day}{weekday}"),
+        day_month: month_day,
         header,
     })
 }
@@ -425,6 +431,15 @@ impl Tempo {
 
     fn menu_date_formats(&self) -> DateFormats {
         date_formats(self.current_format(), chrono_locale())
+    }
+
+    /// The date and time in the timezone list, in the clock's order and hour cycle.
+    fn timezone_list_format(&self) -> String {
+        format!(
+            "{} {}",
+            self.menu_date_formats().day_month,
+            self.weather_time_format()
+        )
     }
 
     pub fn update(&mut self, message: Message) -> Action {
@@ -727,6 +742,16 @@ mod tests {
     }
 
     #[test]
+    fn day_month_follows_the_clock() {
+        let day_month = |clock: &str, locale| date_formats(clock, locale).day_month;
+
+        assert_eq!(day_month("%a %d %b %R", Locale::en_US), "%d %b");
+        assert_eq!(day_month("%a %b %-d %I:%M %p", Locale::en_US), "%b %-d");
+        assert_eq!(day_month("%R", Locale::ja_JP), "%m月%d日");
+        assert_eq!(day_month("%R", Locale::ko_KR), "%m월 %d일");
+    }
+
+    #[test]
     fn unit_locales_keep_their_own_order() {
         assert_eq!(
             render("%R", Locale::ja_JP),
@@ -749,6 +774,7 @@ mod tests {
             DateFormats {
                 forecast: "%-m月%-d日(%a)".to_owned(),
                 header: "%Y年%-m月%-d日".to_owned(),
+                day_month: "%-m月%-d日".to_owned(),
             }
         );
     }
