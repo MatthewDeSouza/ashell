@@ -98,6 +98,17 @@ pub struct Config {
 #[serde(default)]
 pub struct AnimationsConfig {
     pub enabled: bool,
+    pub menu_style: MenuAnimation,
+}
+
+/// How menus open from the bar while animations are enabled.
+#[derive(Deserialize, Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum MenuAnimation {
+    /// The menu rolls out from the bar edge.
+    #[default]
+    Roll,
+    /// The menu grows out of the bar on a spring, joined to it by curved edges.
+    Fluid,
 }
 
 impl Config {

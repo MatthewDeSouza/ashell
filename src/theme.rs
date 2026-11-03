@@ -209,12 +209,17 @@ pub struct AshellTheme {
     pub special_workspace_colors: Option<Vec<AppearanceColor>>,
     pub scale_factor: f64,
     pub animations_enabled: bool,
+    pub menu_animation: crate::config::MenuAnimation,
 }
 
 impl Default for AshellTheme {
     fn default() -> Self {
         let appearance = Appearance::default();
-        base_theme_from_appearance(&appearance, Position::default(), false)
+        base_theme_from_appearance(
+            &appearance,
+            Position::default(),
+            &crate::config::AnimationsConfig::default(),
+        )
     }
 }
 
@@ -535,7 +540,7 @@ fn build_iced_theme(base: Palette, extended: palette::Extended, opacity: f32) ->
 fn base_theme_from_appearance(
     appearance: &Appearance,
     bar_position: Position,
-    animations_enabled: bool,
+    animations: &crate::config::AnimationsConfig,
 ) -> AshellTheme {
     let palette = base_palette(appearance);
     let extended = build_extended(appearance, palette);
@@ -555,7 +560,8 @@ fn base_theme_from_appearance(
         workspace_colors: appearance.workspace_colors.clone(),
         special_workspace_colors: appearance.special_workspace_colors.clone(),
         scale_factor: appearance.scale_factor,
-        animations_enabled,
+        animations_enabled: animations.enabled,
+        menu_animation: animations.menu_style,
         palette,
         surfaces: Surface::ALL.map(|surface| {
             let opacity = appearance.opacity.get(surface);
@@ -574,7 +580,12 @@ impl AshellTheme {
         appearance: &Appearance,
         animations: &crate::config::AnimationsConfig,
     ) -> Self {
-        base_theme_from_appearance(appearance, position, animations.enabled)
+        base_theme_from_appearance(appearance, position, animations)
+    }
+
+    /// Menus grow out of the bar as one shape with it.
+    pub fn fluid_menus(&self) -> bool {
+        self.animations_enabled && self.menu_animation == crate::config::MenuAnimation::Fluid
     }
 
     pub fn surface(&self, surface: Surface) -> &SurfaceTheme {

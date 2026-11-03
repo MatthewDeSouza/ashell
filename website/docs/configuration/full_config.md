@@ -231,6 +231,7 @@ show_brightness_percentage = false  # (default) show numeric brightness value in
 
 [animations]
 enabled = false   # (default)
+menu_style = "Roll"   # (default) or "Fluid"
 
 # ── Appearance ────────────────────────────────────────────────────────────────
 

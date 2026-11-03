@@ -13,6 +13,8 @@ use iced::{
 use std::time::Duration;
 
 pub const ANIMATION_DURATION: Duration = Duration::from_millis(100);
+/// Long enough for the fluid style's closing spring to settle at the bar.
+pub const FLUID_CLOSE_DURATION: Duration = Duration::from_millis(260);
 
 #[derive(Eq, PartialEq, Clone, Debug)]
 pub enum MenuType {
@@ -139,9 +141,14 @@ impl Menu {
         if !self.animations_enabled {
             return Task::done(app::Message::FinishCloseMenu(id));
         }
+        let duration = if use_theme(|t| t.fluid_menus()) {
+            FLUID_CLOSE_DURATION
+        } else {
+            ANIMATION_DURATION
+        };
         Task::perform(
             async move {
-                tokio::time::sleep(ANIMATION_DURATION).await;
+                tokio::time::sleep(duration).await;
                 id
             },
             app::Message::FinishCloseMenu,
@@ -304,23 +311,32 @@ impl App {
         content: Element<'a, app::Message>,
         button_ui_ref: ButtonUIRef,
     ) -> Element<'a, app::Message> {
-        let (space, radius, bar_surface, bar_position, menu_backdrop, blur) = use_theme(|t| {
-            (
-                t.space,
-                t.radius,
-                t.bar_surface,
-                t.bar_position,
-                t.menu.backdrop,
-                t.surface(Surface::Menu).blur,
-            )
-        });
+        let (space, radius, bar_surface, bar_position, menu_backdrop, blur, fluid) =
+            use_theme(|t| {
+                (
+                    t.space,
+                    t.radius,
+                    t.bar_surface,
+                    t.bar_position,
+                    t.menu.backdrop,
+                    t.surface(Surface::Menu).blur,
+                    t.fluid_menus().then(|| components::Fluid {
+                        color: t.surface(Surface::Menu).iced_theme.palette().background,
+                        radius: t.radius.lg,
+                    }),
+                )
+            });
 
-        let menu_style = move |theme: &Theme| Style {
-            background: Some(theme.palette().background.into()),
-            border: surface_border(theme, radius.lg),
-            ..Default::default()
+        // The fluid style draws the panel itself, joined to the bar.
+        let menu_style = move |theme: &Theme| match fluid {
+            Some(_) => Style::default(),
+            None => Style {
+                background: Some(theme.palette().background.into()),
+                border: surface_border(theme, radius.lg),
+                ..Default::default()
+            },
         };
-        let menu_body = if blur {
+        let menu_body = if blur && fluid.is_none() {
             blur_container(content)
                 .padding(space.md)
                 .style(menu_style)
@@ -337,6 +353,7 @@ impl App {
         components::MenuWrapper::new(button_ui_ref.position.x, menu_body)
             .padding({
                 let v_padding = match bar_surface {
+                    _ if fluid.is_some() => 0,
                     BarSurface::Solid => 2,
                     BarSurface::Transparent => 0,
                 };
@@ -361,6 +378,7 @@ impl App {
             .on_click_outside(app::Message::CloseMenu(id))
             .open(!self.outputs.menu_is_closing(id))
             .animated(use_theme(|t| t.animations_enabled))
+            .fluid(fluid)
             .into()
     }
 }

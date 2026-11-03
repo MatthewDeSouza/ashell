@@ -692,7 +692,9 @@ impl App {
                     .height((HEIGHT + bar_layout.vertical_padding()) as f32)
                     .padding(bar_layout.padding());
 
-                let menu_is_open = self.outputs.menu_is_open();
+                // A fluid menu is one shape with the bar, so the bar keeps its
+                // colour instead of dimming with the backdrop.
+                let menu_is_open = self.outputs.menu_is_open() && !use_theme(|t| t.fluid_menus());
                 let bar_style = move |t: &Theme| container::Style {
                     background: match bar_surface {
                         BarSurface::Solid => Some({

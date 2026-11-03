@@ -301,3 +301,16 @@ you opt in:
 [animations]
 enabled = true
 ```
+
+With animations on, `menu_style` picks how menus open from the bar. `"Roll"`, the
+default, rolls the menu out from the bar edge. `"Fluid"` grows the menu out of the
+bar on a spring, as one shape with the bar, with curved edges that widen while it
+moves and settle back once it stops. A menu that would sit too close to a screen
+edge for its curve goes flush with that edge instead. The bar keeps its color
+while a fluid menu is open, so the two read as one surface.
+
+```toml
+[animations]
+enabled = true
+menu_style = "Fluid"
+```
